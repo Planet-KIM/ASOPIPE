@@ -1,7 +1,6 @@
 import collections
 import gzip
 
-
 def generate_long_dna_sequence(seq_length):
     """
     Generate a single long DNA sequence of given seq_length using GPU.
@@ -66,7 +65,7 @@ def loadBlatOutput(blatOutputPath,by='transID',blacklist=['NR_106988']):
 
         h[r[by]].append(r)
 
-    from operator import itemgetter, attrgetter
+    from operator import itemgetter
 
     for k,vL in list(h.items()):
         h[k] = sorted(vL,key=itemgetter('txnSta','txnEnd'))
