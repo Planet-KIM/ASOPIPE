@@ -1,13 +1,14 @@
-from jklib.bioDB import CommonSNP
-import RNA
+
+import os
 import re
 from functools import lru_cache
-from diskcache import Cache
-import os, pathlib, pickle
 
+import RNA
+from diskcache import Cache
+from jklib.bioDB import CommonSNP
 
 # ① 디스크 캐시: 10 GB 또는 항목 1 M개 선에서 LRU 자동 제거
-CACHE_DIR = ".rnacofold_cache"
+CACHE_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "./../../" ,".rnacofold_cache")
 disk_cache = Cache(directory=str(CACHE_DIR), size_limit=10 * 1024 ** 3)
 RNA.cvar.dangles = 2
 RNA.cvar.noLonelyPairs = 1

@@ -10,10 +10,10 @@ import traceback
 #import editdistance
 #from functools import partial
 
-from utils.basic import loadBlatOutput
-from utils.coverage import average_edit_distance
-from utils.align.maf_th import MultipleAlignmentReader
-from utils.rna import RNAcofold2, containCommonSNP, containGquad2, countCpG, GCcontent
+from asopipe.utils.basic import loadBlatOutput
+from asopipe.utils.coverage import average_edit_distance
+from asopipe.utils.align.maf_th import MultipleAlignmentReader
+from asopipe.utils.rna import RNAcofold2, containCommonSNP, containGquad2, countCpG, GCcontent
 
 from jklib.genome import locus
 from jklib.bioDB import CommonSNP
@@ -157,7 +157,7 @@ class ASOdesign:
             flag = ':'.join(flag)
             homo, mono = RNAcofold2(sequence)
             #'type','gene','transcriptID','locus','sequence','length','regionType','commonSNP','Gquad','CpG','GC_content','Homo_dimer','Monomer'
-            return [{"Type": flag,
+            return {"Type": flag,
                     "Gene": self.transInfo['transName'],
                     "TranscriptID": self.transInfo['transID'],
                     "Locus": locStr, "Sequence": sequence, "Length": len(sequence), "RegionType": regionT,
@@ -165,11 +165,11 @@ class ASOdesign:
                     "Gquad": containGquad2(sequence),
                     "CpG": countCpG(sequence),
                     "GC_Content": GCcontent(sequence),
-                    "Homo_Dimer": homo, "Monomer": mono}]
+                    "Homo_Dimer": homo, "Monomer": mono}
         except Exception as e:
             print(traceback.format_exc())
             return e.args
-
+"""
 # ──────────────────────────────────────────────────────────────
 # 3) 실행 예시  ────────────────────────────────────────────────
 if __name__ == "__main__":
@@ -183,3 +183,4 @@ if __name__ == "__main__":
 
     aso.process_main(chunk_division=5, max_workers=4)
     print("Elapsed:", time.time() - t0, "sec")
+"""

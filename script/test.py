@@ -1,6 +1,6 @@
 import sys
 sys.path.append("..")  # 상위 디렉토리 추가
-from mypkg import ASOdesign, run_aso_design
+from mypkg.asopipe import ASOdesign, run_aso_design
 import multiprocessing as mp
 import time
 # ──────────────────────────────────────────────────────────────
