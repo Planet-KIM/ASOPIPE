@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import multiprocessing as mp
+#import multiprocessing as mp
 import concurrent.futures
 import numpy as np
 import pandas as pd
 from collections import defaultdict
 
-import time
+#import time
 import traceback
 #import editdistance
 #from functools import partial
 
 from asopipe.utils.basic import loadBlatOutput
 from asopipe.utils.coverage import average_edit_distance
+from asopipe.utils.align.maf_th import check_wobble
 from asopipe.utils.align.maf_th import MultipleAlignmentReader
 from asopipe.utils.rna import RNAcofold2, containCommonSNP, containGquad2, countCpG, GCcontent
 
@@ -66,8 +67,6 @@ class ASOdesign:
         self.tile_length  = tile_length
 
         self.transInfo    = self._get_transInfo()
-        self.txn_tiles    = self._tile_region()
-        self.txn_tile_seq = self._tile_txn_seq()
         if transid != None:
             self.strand = self.transInfo['strand']
             self.anti = '+' if self.transInfo['strand'] == '-' else '-'
@@ -76,6 +75,9 @@ class ASOdesign:
             self.txnEnd   = self.transInfo['txnEnd']
         else:
             raise ValueError("transid is None")
+        self.txn_tiles    = self._tile_region()
+        self.txn_tile_seq = self._tile_txn_seq()
+
 
     # ───── 내부 헬퍼 ──────────────────────────────────────────
     def _get_transInfo(self):
@@ -102,7 +104,7 @@ class ASOdesign:
             yield seq[i:i+k]
 
     # ───── 퍼블릭 메서드 ─────────────────────────────────────
-    def process_main(self, chunk_division=3, max_workers=3, to_df=True):
+    def process_main(self, chunk_division=3, max_workers=3, wobble=2, to_df=True):
         print(f"#tiles={len(self.txn_tiles)}, assemblies={self.query_asm}")
 
         result_dict = {}
@@ -125,10 +127,17 @@ class ASOdesign:
                     all_results_maf.extend(chunk_maf_results)
                     all_editdist.extend(dists)
                 result_dict[asm] = {"maf_seq": all_results_maf, "coverage": all_editdist, "locInfo": all_results_locInfo}
+                print(asm, result_dict[asm]["maf_seq"][:3])
         print("finished. first 3 results:", result_dict[self.query_asm[0]]["locInfo"][:1])
         print("finished. first 3 results:", result_dict[self.query_asm[0]]["maf_seq"][:1])
         print("finished. first 3 results:", result_dict[self.query_asm[0]]["coverage"][:1])
         sort_result_dict = self._sort_dict(result_dict)
+        #(zip(result["mm39"]["hg38"], result["mm39"]["mm39"],
+        #for _assembly in sort_result_dict.keys():
+        #    wobble_pair = []
+        #    for human, other in zip(sort_result_dict[_assembly]["hg38"], sort_result_dict[_assembly][_assembly]):
+        #        wobble_pair.append(check_wobble(r=human, q=other, wob=wobble, anti_strand=self.anti))
+        #    sort_result_dict[_assembly]["wobble"] = wobble_pair
         if to_df:
             result_df  = self.apply_df(sort_result_dict)
             return result_df
@@ -193,10 +202,10 @@ class ASOdesign:
         for _assembbly in result.keys():
             remake_output_assembly = {}
             for _key in result[_assembbly].keys():
-                flattened_result = self._flatten_dict(result['mm39'][_key]) 
+                flattened_result = self._flatten_dict(result[_assembbly][_key]) 
                 if isinstance(flattened_result, list):
                     flattened_result = {"Coverage": flattened_result} # using editdistance
-                #print(flattened_result)
+                print(_assembbly,_key,flattened_result)
                 remake_output_assembly.update(flattened_result)
             remake_output_result[_assembbly] = remake_output_assembly
         return remake_output_result

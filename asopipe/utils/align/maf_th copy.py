@@ -85,7 +85,6 @@ def check_wobble(r, q, anti_strand="-", wob=2):
     return wobble_dict
     #return True, wobble_dict
 
-
 def build_index(maf_file, species=None):
     """
     주어진 MAF 파일에 대해 인덱스 파일(maf_file.index)을 생성합니다.
@@ -194,12 +193,6 @@ class MultipleAlignmentReader:
         region_name = f"{self.ref_assembly}.{loc.chrom}"
         s, e = loc.chrSta - 1, loc.chrEnd  # 0-base 좌표로 보정
         
-        # fallback query용 locus 생성 (locus() 함수가 외부에 존재한다고 가정)
-        try:
-            stab = locus(f'{loc.chrom}:{loc.chrSta}-{loc.chrSta}{loc.strand}')
-        except Exception:
-            stab = loc
-        
         for alignment in idx.get(region_name, s, e):
             try:
                 region_alignment = alignment.slice_by_component(region_name, s, e)
@@ -269,3 +262,5 @@ class MultipleAlignmentReader:
                 except Exception:
                     return None
         return merged
+    
+
