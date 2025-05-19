@@ -2,6 +2,7 @@
 MAF 파일의 인덱스를 생성하고, 특정 유전체 좌표에 해당하는 다중 정렬 정보를 조회하는 모듈입니다.
 """
 import os
+import traceback
 import collections
 
 from io import TextIOWrapper
@@ -30,60 +31,68 @@ def check_wobble(r, q, anti_strand="-", wob=2):
         True  + dict : 통과.  딕트 구조는 원본 그대로
         False + None : 탈락
     """
-    r, q = r.upper().rstrip('-'), q.upper().rstrip('-')
-    if anti_strand == '+':
-        # complement만 하는 이유를 아직 파악하지 못함 
-        r,q = compl(r), compl(q)
-    # 1) 갭·길이 불일치 즉시 탈락
-    if '-' in r or '-' in q or len(r) != len(q):
+    try:
+        if r == None or q == None:
+            raise ValueError
+        r, q = r.upper().rstrip('-'), q.upper().rstrip('-')
+        if anti_strand == '+':
+            # complement만 하는 이유를 아직 파악하지 못함 
+            r,q = compl(r), compl(q)
+        # 1) 갭·길이 불일치 즉시 탈락
+        if '-' in r or '-' in q or len(r) != len(q):
+            raise ValueError
+            #return False
+            #return False, None
+
+        # 2) 불일치 위치 파악
+        mismatch_idx = [i for i, (rb, qb) in enumerate(zip(r, q)) if rb != qb]
+        if len(mismatch_idx) > wob:
+            raise ValueError
+            #return False
+            #return False, None
+
+        # 3) 네 가지 wobble 클래스(중복 허용)
+        gu_humanC, gu_otherC, i_humanC, i_otherwise = [], [], [], []
+        for idx in mismatch_idx:
+            rb, qb = r[idx], q[idx]
+
+            # GU wobble
+            if (rb == 'C' and qb == 'T') or (rb == 'A' and qb == 'G'):
+                gu_humanC.append(idx)
+            if (rb == 'T' and qb == 'C') or (rb == 'G' and qb == 'A'):
+                gu_otherC.append(idx)
+
+            # I wobble
+            if rb == 'C' and qb != 'G':
+                i_humanC.append(idx)
+            if rb not in 'GC' and qb != 'G':
+                i_otherwise.append(idx)
+
+        # 4) 허용되지 않은 불일치가 섞여 있나?
+        # 위조건이 전부매치하여도 위의 네 가지 속하지 않을 수 있음
+        if set(gu_humanC + gu_otherC + i_humanC + i_otherwise) != set(mismatch_idx):
+            raise ValueError
+            #return False
+            #return False, None
+
+        # 5) 원본과 완전히 같은 딕트 포맷 반환
+        wobble_dict = {
+            'GU_humanC':   gu_humanC,
+            'GU_otherC':   gu_otherC,
+            'I_humanC':    i_humanC,
+            'I_otherwise': i_otherwise
+        }
+        if anti_strand == '-':
+            # reverse complement
+            for _key, _value in wobble_dict.items():
+                if not _value:
+                    continue
+                # if len(r) == len(q) : True
+                wobble_dict[_key] = sorted([len(r) - 1 - i for i in _value])
+        return wobble_dict
+        #return True, wobble_dict
+    except ValueError:
         return False
-        #return False, None
-
-    # 2) 불일치 위치 파악
-    mismatch_idx = [i for i, (rb, qb) in enumerate(zip(r, q)) if rb != qb]
-    if len(mismatch_idx) > wob:
-        return False
-        #return False, None
-
-    # 3) 네 가지 wobble 클래스(중복 허용)
-    gu_humanC, gu_otherC, i_humanC, i_otherwise = [], [], [], []
-    for idx in mismatch_idx:
-        rb, qb = r[idx], q[idx]
-
-        # GU wobble
-        if (rb == 'C' and qb == 'T') or (rb == 'A' and qb == 'G'):
-            gu_humanC.append(idx)
-        if (rb == 'T' and qb == 'C') or (rb == 'G' and qb == 'A'):
-            gu_otherC.append(idx)
-
-        # I wobble
-        if rb == 'C' and qb != 'G':
-            i_humanC.append(idx)
-        if rb not in 'GC' and qb != 'G':
-            i_otherwise.append(idx)
-
-    # 4) 허용되지 않은 불일치가 섞여 있나?
-    # 위조건이 전부매치하여도 위의 네 가지 속하지 않을 수 있음
-    if set(gu_humanC + gu_otherC + i_humanC + i_otherwise) != set(mismatch_idx):
-        return False
-        #return False, None
-
-    # 5) 원본과 완전히 같은 딕트 포맷 반환
-    wobble_dict = {
-        'GU_humanC':   gu_humanC,
-        'GU_otherC':   gu_otherC,
-        'I_humanC':    i_humanC,
-        'I_otherwise': i_otherwise
-    }
-    if anti_strand == '-':
-        # reverse complement
-        for _key, _value in wobble_dict.items():
-            if not _value:
-                continue
-            # if len(r) == len(q) : True
-            wobble_dict[_key] = sorted([len(r) - 1 - i for i in _value])
-    return wobble_dict
-    #return True, wobble_dict
 
 
 def build_index(maf_file, species=None):
@@ -194,23 +203,18 @@ class MultipleAlignmentReader:
         region_name = f"{self.ref_assembly}.{loc.chrom}"
         s, e = loc.chrSta - 1, loc.chrEnd  # 0-base 좌표로 보정
         
-        # fallback query용 locus 생성 (locus() 함수가 외부에 존재한다고 가정)
-        try:
-            stab = locus(f'{loc.chrom}:{loc.chrSta}-{loc.chrSta}{loc.strand}')
-        except Exception:
-            stab = loc
-        
         for alignment in idx.get(region_name, s, e):
             try:
-                region_alignment = alignment.slice_by_component(region_name, s, e)
+                #print(region_name, s, e)
+                region_alignment = alignment.slice_by_component(component_index=region_name, start=s, end=e)
             except ValueError:
+                #print(traceback.format_exc())
                 continue
             
             seqs_by_org = {}
             for component in region_alignment.components:
                 if component.src.startswith((self.ref_assembly, self.query_assembly)):
                     seqs_by_org[component.src] = component.text
-            
             if not verbose:
                 seqs_by_org = {k.split('.')[0]: v for k, v in seqs_by_org.items()}
             
@@ -250,7 +254,7 @@ class MultipleAlignmentReader:
                     break
                 results.append(seqs_by_org)
                 break
-        
+        #print('results:', results)
         if not results:
             return None
         if len(results) == 1:

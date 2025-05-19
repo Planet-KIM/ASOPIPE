@@ -190,6 +190,7 @@ class MultipleAlignmentReader:
           - 해당 영역의 정렬된 서열 정보를 포함하는 딕셔너리 (없는 경우 None)
         """
         idx = self._get_index(loc.chrom)
+        print(idx)
         region_name = f"{self.ref_assembly}.{loc.chrom}"
         s, e = loc.chrSta - 1, loc.chrEnd  # 0-base 좌표로 보정
         

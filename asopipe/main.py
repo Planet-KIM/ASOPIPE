@@ -133,11 +133,11 @@ class ASOdesign:
         print("finished. first 3 results:", result_dict[self.query_asm[0]]["coverage"][:1])
         sort_result_dict = self._sort_dict(result_dict)
         #(zip(result["mm39"]["hg38"], result["mm39"]["mm39"],
-        #for _assembly in sort_result_dict.keys():
-        #    wobble_pair = []
-        #    for human, other in zip(sort_result_dict[_assembly]["hg38"], sort_result_dict[_assembly][_assembly]):
-        #        wobble_pair.append(check_wobble(r=human, q=other, wob=wobble, anti_strand=self.anti))
-        #    sort_result_dict[_assembly]["wobble"] = wobble_pair
+        for _assembly in sort_result_dict.keys():
+            wobble_pair = []
+            for human, other in zip(sort_result_dict[_assembly]["hg38"], sort_result_dict[_assembly][_assembly]):
+                wobble_pair.append(check_wobble(r=human, q=other, wob=wobble, anti_strand=self.anti))
+            sort_result_dict[_assembly]["wobble"] = wobble_pair
         if to_df:
             result_df  = self.apply_df(sort_result_dict)
             return result_df
@@ -203,8 +203,12 @@ class ASOdesign:
             remake_output_assembly = {}
             for _key in result[_assembbly].keys():
                 flattened_result = self._flatten_dict(result[_assembbly][_key]) 
-                if isinstance(flattened_result, list):
-                    flattened_result = {"Coverage": flattened_result} # using editdistance
+                if _key == "coverage":
+                    if isinstance(flattened_result, list):
+                        flattened_result = {"Coverage": flattened_result} # using editdistance
+                elif _key == "maf_seq":
+                    if isinstance(flattened_result, list):
+                        flattened_result = {"hg38": flattened_result, _assembbly: flattened_result}
                 print(_assembbly,_key,flattened_result)
                 remake_output_assembly.update(flattened_result)
             remake_output_result[_assembbly] = remake_output_assembly
