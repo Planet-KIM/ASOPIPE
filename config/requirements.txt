@@ -7,3 +7,4 @@ bx-python
 editdistance
 diskcache
 viennarna
+numba

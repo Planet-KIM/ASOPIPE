@@ -4,6 +4,8 @@
 import multiprocessing as mp
 import concurrent.futures
 import numpy as np
+import pandas as pd
+from collections import defaultdict
 
 import time
 import traceback
@@ -66,6 +68,14 @@ class ASOdesign:
         self.transInfo    = self._get_transInfo()
         self.txn_tiles    = self._tile_region()
         self.txn_tile_seq = self._tile_txn_seq()
+        if transid != None:
+            self.strand = self.transInfo['strand']
+            self.anti = '+' if self.transInfo['strand'] == '-' else '-'
+            self.chrom = self.transInfo['chrom']
+            self.txnSta = self.transInfo['txnSta']
+            self.txnEnd   = self.transInfo['txnEnd']
+        else:
+            raise ValueError("transid is None")
 
     # ───── 내부 헬퍼 ──────────────────────────────────────────
     def _get_transInfo(self):
@@ -73,23 +83,15 @@ class ASOdesign:
                 if len(t['chrom'].split('_')) == 1][0]
 
     def _tile_region(self):
-        anti = '+' if self.transInfo['strand'] == '-' else '-'
-        chrom = self.transInfo['chrom']
-        start = self.transInfo['txnSta']
-        end   = self.transInfo['txnEnd']
         L     = self.tile_length
-        return [locus(f"{chrom}:{i}-{i+L-1}{anti}")   # inclusive end = i+L-1
-            for i in range(start, end-L+1)]
+        return [locus(f"{self.chrom}:{i}-{i+L-1}{self.anti}")   # inclusive end = i+L-1
+            for i in range(self.txnSta, self.txnEnd-L+1)]
 
     def _tile_txn_seq(self):
-        anti = '+' if self.transInfo['strand'] == '-' else '-'
-        chrom = self.transInfo['chrom']
-        start = self.transInfo['txnSta']
-        end   = self.transInfo['txnEnd']
         L     = self.tile_length
-        txn_seq = locus(f"{chrom}:{start}-{end-1}{anti}").twoBitFrag().upper()
-        result_array = [ txn_seq[i:i+L] for i in range(0, end-start-L+1)]
-        if anti == '-':
+        txn_seq = locus(f"{self.chrom}:{self.txnSta}-{self.txnEnd-1}{self.anti}").twoBitFrag().upper()
+        result_array = [ txn_seq[i:i+L] for i in range(0, self.txnEnd-self.txnSta-L+1)]
+        if self.anti == '-':
             result_array = result_array[::-1]
         return result_array
 
@@ -100,10 +102,9 @@ class ASOdesign:
             yield seq[i:i+k]
 
     # ───── 퍼블릭 메서드 ─────────────────────────────────────
-    def process_main(self, chunk_division=3, max_workers=3):
+    def process_main(self, chunk_division=3, max_workers=3, to_df=True):
         print(f"#tiles={len(self.txn_tiles)}, assemblies={self.query_asm}")
 
-        
         result_dict = {}
         for asm in self.query_asm:                      # 어셈블리별로 별도 풀
             print(f"[{asm}]")
@@ -127,7 +128,12 @@ class ASOdesign:
         print("finished. first 3 results:", result_dict[self.query_asm[0]]["locInfo"][:1])
         print("finished. first 3 results:", result_dict[self.query_asm[0]]["maf_seq"][:1])
         print("finished. first 3 results:", result_dict[self.query_asm[0]]["coverage"][:1])
-        return result_dict
+        sort_result_dict = self._sort_dict(result_dict)
+        if to_df:
+            result_df  = self.apply_df(sort_result_dict)
+            return result_df
+        else:
+            return sort_result_dict
 
     @staticmethod
     def _editdistance_safe(res):
@@ -169,6 +175,48 @@ class ASOdesign:
         except Exception as e:
             print(traceback.format_exc())
             return e.args
+        
+    
+    def _flatten_dict(self, data):
+        """
+        Flatten a list of dictionaries into a single dictionary.
+        """
+        try:
+            result = defaultdict(list); [result[k].append(v) for d in data for k, v in d.items()]
+            return dict(result)
+        except Exception as e:
+            #print(e.args)
+            return data
+    
+    def _sort_dict(self, result):
+        remake_output_result = {}
+        for _assembbly in result.keys():
+            remake_output_assembly = {}
+            for _key in result[_assembbly].keys():
+                flattened_result = self._flatten_dict(result['mm39'][_key]) 
+                if isinstance(flattened_result, list):
+                    flattened_result = {"Coverage": flattened_result} # using editdistance
+                #print(flattened_result)
+                remake_output_assembly.update(flattened_result)
+            remake_output_result[_assembbly] = remake_output_assembly
+        return remake_output_result
+    
+    def apply_df(self, result_dict):
+        """
+        Convert the result dictionary to a DataFrame.
+        """
+        try:
+            result_df = {}
+            for _assembly in result_dict.keys():
+                df = pd.DataFrame(result_dict[_assembly])
+                df["assembly"] = _assembly
+                result_df[_assembly] = df
+            return result_df
+        except Exception as e:
+            print(e.args)
+            return e.args
+        
+    
 """
 # ──────────────────────────────────────────────────────────────
 # 3) 실행 예시  ────────────────────────────────────────────────
