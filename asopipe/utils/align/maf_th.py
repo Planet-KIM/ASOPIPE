@@ -9,6 +9,7 @@ from io import TextIOWrapper
 from bx import interval_index_file
 import bx.align.maf
 
+macfas5_maf_dir = '/home/commons/Reference/UCSC/hg38/maf/hg38.macFas5'
 
 def compl(seq):
     return seq.translate(seq.maketrans('ACGTacgt','TGCAtgca'))
