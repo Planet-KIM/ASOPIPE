@@ -133,11 +133,13 @@ class ASOdesign:
         print("finished. first 3 results:", result_dict[self.query_asm[0]]["coverage"][:1])
         sort_result_dict = self._sort_dict(result_dict)
         #(zip(result["mm39"]["hg38"], result["mm39"]["mm39"],
+        """
         for _assembly in sort_result_dict.keys():
             wobble_pair = []
             for human, other in zip(sort_result_dict[_assembly]["hg38"], sort_result_dict[_assembly][_assembly]):
                 wobble_pair.append(check_wobble(r=human, q=other, wob=wobble, anti_strand=self.anti))
             sort_result_dict[_assembly]["wobble"] = wobble_pair
+        """
         if to_df:
             result_df  = self.apply_df(sort_result_dict)
             return result_df
@@ -191,9 +193,30 @@ class ASOdesign:
         Flatten a list of dictionaries into a single dictionary.
         """
         try:
-            result = defaultdict(list); [result[k].append(v) for d in data for k, v in d.items()]
+            if isinstance(data, dict):
+                raise Exception
+            #result = defaultdict(list); [result[k].append(v) for d in data for k, v in d.items()]
+            # ❶ 결과를 담을 defaultdict 생성
+            result = defaultdict(list)
+            # 1) 모든 레코드에서 등장한 키 수집
+            keys, seen = [], set()
+            for rec in data:
+                if rec is None:
+                    continue
+                for k in rec:
+                    if k not in seen:
+                        seen.add(k)
+                        keys.append(k)
+
+            # 2) 각 위치에 맞춰 값 채워 넣기
+            result = defaultdict(list)
+            for rec in data:
+                for k in keys:
+                    value = None if (rec is None) else rec.get(k, None)
+                    result[k].append(value)
             return dict(result)
         except Exception as e:
+            #print(traceback.format_exc())
             #print(e.args)
             return data
     
@@ -207,9 +230,10 @@ class ASOdesign:
                     if isinstance(flattened_result, list):
                         flattened_result = {"Coverage": flattened_result} # using editdistance
                 elif _key == "maf_seq":
-                    if isinstance(flattened_result, list):
-                        flattened_result = {"hg38": flattened_result, _assembbly: flattened_result}
-                print(_assembbly,_key,flattened_result)
+                    #if isinstance(flattened_result, dict):
+                    if not any(x is not None for x in flattened_result):
+                        flattened_result = {"hg38": result[_assembbly][_key], _assembbly: result[_assembbly][_key]}
+                    #print(_assembbly,_key, flattened_result)
                 remake_output_assembly.update(flattened_result)
             remake_output_result[_assembbly] = remake_output_assembly
         return remake_output_result
