@@ -105,8 +105,14 @@ class ASOdesign:
 
     # ───── 퍼블릭 메서드 ─────────────────────────────────────
     def process_main(self, chunk_division=3, max_workers=3, wobble=2, to_df=True):
-        print(f"#tiles={len(self.txn_tiles)}, assemblies={self.query_asm}")
-
+        print(f"#tiles={len(self.txn_tiles)}, assemblies={self.query_asm}")     
+        #
+        _all_results_locInfo = []
+        for chunk_loc, chunk_seq in zip(self._chunks(self.txn_tiles, chunk_division), self._chunks(self.txn_tile_seq, chunk_division)):
+            chunk_locInfo = [self.getlocInfo(tile_loc, tile_seq) for tile_loc, tile_seq in zip(chunk_loc, chunk_seq)] 
+            _all_results_locInfo.extend(chunk_locInfo)
+        all_results_locInfo = self._flatten_dict(_all_results_locInfo)
+        # 
         result_dict = {}
         for asm in self.query_asm:                      # 어셈블리별로 별도 풀
             print(f"[{asm}]")
@@ -115,36 +121,45 @@ class ASOdesign:
                     initializer=_init_worker,
                     initargs=(self.maf_dir, self.ref_asm, asm),
             ) as ex:
-                all_results_locInfo = []
                 all_results_maf, all_editdist = [], []
                 for chunk_loc, chunk_seq in zip(self._chunks(self.txn_tiles, chunk_division), self._chunks(self.txn_tile_seq, chunk_division)):
                     # region 문자열만 워커에 전달
                     #chunk_locInfo = list(ex.map(self.getlocInfo, chunk))
-                    chunk_locInfo = [self.getlocInfo(tile_loc, tile_seq) for tile_loc, tile_seq in zip(chunk_loc, chunk_seq)]
+                    #chunk_locInfo = [self.getlocInfo(tile_loc, tile_seq) for tile_loc, tile_seq in zip(chunk_loc, chunk_seq)]
                     chunk_maf_results = list(ex.map(_query_region, chunk_loc))
                     dists   = [self._editdistance_safe(r) for r in chunk_maf_results]
-                    all_results_locInfo.extend(chunk_locInfo)
+                    #all_results_locInfo.extend(chunk_locInfo)
                     all_results_maf.extend(chunk_maf_results)
                     all_editdist.extend(dists)
-                result_dict[asm] = {"maf_seq": all_results_maf, "coverage": all_editdist, "locInfo": all_results_locInfo}
+                result_dict[asm] = {"maf_seq": all_results_maf, "coverage": all_editdist}
+                #result_dict[asm] = {"maf_seq": all_results_maf, "coverage": all_editdist, "locInfo": all_results_locInfo}
                 print(asm, result_dict[asm]["maf_seq"][:3])
-        print("finished. first 3 results:", result_dict[self.query_asm[0]]["locInfo"][:1])
+        #print("finished. first 3 results:", result_dict[self.query_asm[0]]["locInfo"][:1])
         print("finished. first 3 results:", result_dict[self.query_asm[0]]["maf_seq"][:1])
         print("finished. first 3 results:", result_dict[self.query_asm[0]]["coverage"][:1])
         sort_result_dict = self._sort_dict(result_dict)
-        #(zip(result["mm39"]["hg38"], result["mm39"]["mm39"],
-        """
+        #(zip(result["mm39"]["hg38"], result["mm39"]["mm39"],  
+        #print(sort_result_dict)
         for _assembly in sort_result_dict.keys():
             wobble_pair = []
-            for human, other in zip(sort_result_dict[_assembly]["hg38"], sort_result_dict[_assembly][_assembly]):
-                wobble_pair.append(check_wobble(r=human, q=other, wob=wobble, anti_strand=self.anti))
-            sort_result_dict[_assembly]["wobble"] = wobble_pair
-        """
+            #for human, other in zip(sort_result_dict[_assembly]["hg38"], sort_result_dict[_assembly][_assembly]):
+            #human, other = sort_result_dict[_assembly][f"maf_seq_{_assembly}"].split(":")
+            for _maf_seq in sort_result_dict[_assembly][f"maf_seq_{_assembly}"]:
+                _human, _other = _maf_seq.split(":")
+                wobble_pair.append(check_wobble(r=_human, q=_other, wob=wobble, anti_strand=self.anti))
+            print(wobble_pair, "wobble")
+            sort_result_dict[_assembly].update({f"wobble_{_assembly}": wobble_pair})
+            all_results_locInfo.update(sort_result_dict[_assembly])
+            #all_results_locInfo.update(sort_result_dict[_assembly].update({f"wobble_{_assembly}": wobble_pair}))
+            #sort_result_dict[_assembly]["wobble"] = wobble_pair
+            #sort_result_dict[_assembly].update(all_results_locInfo)
+        print(all_results_locInfo)
         if to_df:
-            result_df  = self.apply_df(sort_result_dict)
+            #result_df  = self.apply_df(sort_result_dict)
+            result_df = pd.DataFrame(all_results_locInfo)
             return result_df
         else:
-            return sort_result_dict
+            return all_results_locInfo
 
     @staticmethod
     def _editdistance_safe(res):
@@ -191,6 +206,7 @@ class ASOdesign:
     def _flatten_dict(self, data):
         """
         Flatten a list of dictionaries into a single dictionary.
+        #support to this typo [{type: i:e}, {type: i:i}] -> {type: [i:e, i:i]}
         """
         try:
             if isinstance(data, dict):
@@ -227,13 +243,22 @@ class ASOdesign:
             for _key in result[_assembbly].keys():
                 flattened_result = self._flatten_dict(result[_assembbly][_key]) 
                 if _key == "coverage":
-                    if isinstance(flattened_result, list):
-                        flattened_result = {"Coverage": flattened_result} # using editdistance
+                    if not flattened_result or isinstance(flattened_result, list):
+                        print("hello")
+                        flattened_result = {f"coverage_{_assembbly}": result[_assembbly][_key]}
+                    else:
+                        flattened_result = {f"coverage_{_assembbly}": flattened_result} # using editdistance
+                    #print(_assembbly, flattened_result)
+                
                 elif _key == "maf_seq":
                     #if isinstance(flattened_result, dict):
                     if not any(x is not None for x in flattened_result):
                         flattened_result = {"hg38": result[_assembbly][_key], _assembbly: result[_assembbly][_key]}
-                    #print(_assembbly,_key, flattened_result)
+                    flattened_result={f"{_key}_{_assembbly}": (flattened_result["hg38"], flattened_result[_assembbly])}
+                    _list1, _list2 = flattened_result[f"{_key}_{_assembbly}"]  # 튜플을 풀어서 리스트 2개로 나눔
+                    assert len(_list1) == len(_list2), "두 리스트의 길이가 다릅니다."
+                    flattened_result[f"{_key}_{_assembbly}"] = [f"{a}:{b}" for a, b in zip(_list1, _list2)]
+                print(_assembbly,flattened_result)
                 remake_output_assembly.update(flattened_result)
             remake_output_result[_assembbly] = remake_output_assembly
         return remake_output_result
