@@ -133,7 +133,7 @@ class ASOdesign:
                     all_editdist.extend(dists)
                 result_dict[asm] = {"maf_seq": all_results_maf, "coverage": all_editdist}
                 #result_dict[asm] = {"maf_seq": all_results_maf, "coverage": all_editdist, "locInfo": all_results_locInfo}
-                print(asm, result_dict[asm]["maf_seq"][:3])
+                #print(asm, result_dict[asm]["maf_seq"][:3])
         #print("finished. first 3 results:", result_dict[self.query_asm[0]]["locInfo"][:1])
         print("finished. first 3 results:", result_dict[self.query_asm[0]]["maf_seq"][:1])
         print("finished. first 3 results:", result_dict[self.query_asm[0]]["coverage"][:1])
@@ -147,13 +147,13 @@ class ASOdesign:
             for _maf_seq in sort_result_dict[_assembly][f"maf_seq_{_assembly}"]:
                 _human, _other = _maf_seq.split(":")
                 wobble_pair.append(check_wobble(r=_human, q=_other, wob=wobble, anti_strand=self.anti))
-            print(wobble_pair, "wobble")
+            #print(wobble_pair, "wobble")
             sort_result_dict[_assembly].update({f"wobble_{_assembly}": wobble_pair})
             all_results_locInfo.update(sort_result_dict[_assembly])
             #all_results_locInfo.update(sort_result_dict[_assembly].update({f"wobble_{_assembly}": wobble_pair}))
             #sort_result_dict[_assembly]["wobble"] = wobble_pair
             #sort_result_dict[_assembly].update(all_results_locInfo)
-        print(all_results_locInfo)
+        #print(all_results_locInfo)
         if to_df:
             #result_df  = self.apply_df(sort_result_dict)
             result_df = pd.DataFrame(all_results_locInfo)
@@ -244,12 +244,9 @@ class ASOdesign:
                 flattened_result = self._flatten_dict(result[_assembbly][_key]) 
                 if _key == "coverage":
                     if not flattened_result or isinstance(flattened_result, list):
-                        print("hello")
                         flattened_result = {f"coverage_{_assembbly}": result[_assembbly][_key]}
                     else:
                         flattened_result = {f"coverage_{_assembbly}": flattened_result} # using editdistance
-                    #print(_assembbly, flattened_result)
-                
                 elif _key == "maf_seq":
                     #if isinstance(flattened_result, dict):
                     if not any(x is not None for x in flattened_result):
@@ -258,7 +255,7 @@ class ASOdesign:
                     _list1, _list2 = flattened_result[f"{_key}_{_assembbly}"]  # 튜플을 풀어서 리스트 2개로 나눔
                     assert len(_list1) == len(_list2), "두 리스트의 길이가 다릅니다."
                     flattened_result[f"{_key}_{_assembbly}"] = [f"{a}:{b}" for a, b in zip(_list1, _list2)]
-                print(_assembbly,flattened_result)
+                #print(_assembbly,flattened_result)
                 remake_output_assembly.update(flattened_result)
             remake_output_result[_assembbly] = remake_output_assembly
         return remake_output_result
