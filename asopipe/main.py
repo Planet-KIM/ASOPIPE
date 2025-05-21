@@ -18,7 +18,7 @@ from asopipe.utils.align.maf_th import check_wobble
 from asopipe.utils.align.maf_th import MultipleAlignmentReader
 from asopipe.utils.rna import RNAcofold2, containCommonSNP, containGquad2, countCpG, GCcontent
 
-from jklib.genome import locus
+from jklib.genome import locus, getRegionType
 from jklib.bioDB import CommonSNP
 
 
@@ -174,9 +174,12 @@ class ASOdesign:
     def getlocInfo(self, loc, sequence):
         try:
             #sequence = loc.twoBitFrag().upper()
+            
             locStr   = loc.toString()
             loc_tmp = locus(f'{loc.chrom}:{loc.chrSta+1}-{loc.chrEnd-1}{loc.strand}')
-            flagL = [ e[3] for e in loc_tmp.regionType()]
+            #flagL = [ e[3] for e in loc_tmp.regionType()]
+            h_tmp = {self.transInfo['chrom']: [self.transInfo]}
+            flagL = [ e[3] for e in getRegionType(h_tmp, loc_tmp)]
             flag = []
             for a in flagL:
                 #print(a[0][0])
@@ -185,14 +188,15 @@ class ASOdesign:
                 elif 'int' in a[0][0] : #intron
                     flag.append('i')
 
-            regionT = '/'.join(map(str, loc.regionType()))
+            #regionT = '/'.join(map(str, loc.regionType())) #test
+            regionT = '/'.join(map(str, getRegionType(h_tmp, loc))) #test
             flag = ':'.join(flag)
             homo, mono = RNAcofold2(sequence)
             #'type','gene','transcriptID','locus','sequence','length','regionType','commonSNP','Gquad','CpG','GC_content','Homo_dimer','Monomer'
             return {"Type": flag,
                     "Gene": self.transInfo['transName'],
                     "TranscriptID": self.transInfo['transID'],
-                    "Locus": locStr, "Sequence": sequence, "Length": len(sequence), "RegionType": regionT,
+                    "Locus": locStr, "Sequence": sequence, "Length": len(sequence), "RegionType": regionT,#test
                     "CommonSNP": containCommonSNP(loc, self.cSNP),
                     "Gquad": containGquad2(sequence),
                     "CpG": countCpG(sequence),
