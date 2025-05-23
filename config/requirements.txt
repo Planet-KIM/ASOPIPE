@@ -8,3 +8,4 @@ editdistance
 diskcache
 viennarna
 numba
+cyvcf2
