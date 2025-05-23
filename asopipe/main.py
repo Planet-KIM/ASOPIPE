@@ -7,10 +7,11 @@ import numpy as np
 import pandas as pd
 from collections import defaultdict
 
-#import time
+import time
 import traceback
 #import editdistance
 #from functools import partial
+from cyvcf2 import VCF   # pip install cyvcf2
 
 from asopipe.utils.basic import loadBlatOutput
 from asopipe.utils.coverage import average_edit_distance
@@ -54,18 +55,26 @@ class ASOdesign:
                  transid="NM_002415",
                  refFlat_path="/Users/dowonkim/Dropbox/data/UCSC/hg38/refFlat/refFlat_200817.txt",
                  maf_dir='/Users/dowonkim/Dropbox/data/offtarget_test/maf',
+                 dbsnp_path ="/Users/dowonkim/Dropbox/data/VCF/dbsnp.bcf",
                  query_assembly=["mm39"],      # tuple/리스트 허용
                  ref_assembly="hg38",
                  tile_length=17):
         print(f"[ASOdesign] transid={transid}")
         self.refFlat      = loadBlatOutput(refFlat_path, by='transID')
-        self.cSNP = CommonSNP()
+        #self.cSNP = CommonSNP()
+        
+        self.cSNP = VCF(dbsnp_path)  # .csi 인덱스 자동 사용
         self.maf_dir      = maf_dir
         self.query_asm    = query_assembly
         self.ref_asm      = ref_assembly
         self.transid      = transid
         self.tile_length  = tile_length
-
+        
+        #test
+        self.t0   = time.time()
+        self.endtime = 0
+        #
+        
         self.transInfo    = self._get_transInfo()
         if transid != None:
             self.strand = self.transInfo['strand']
@@ -111,8 +120,10 @@ class ASOdesign:
         for chunk_loc, chunk_seq in zip(self._chunks(self.txn_tiles, chunk_division), self._chunks(self.txn_tile_seq, chunk_division)):
             chunk_locInfo = [self.getlocInfo(tile_loc, tile_seq) for tile_loc, tile_seq in zip(chunk_loc, chunk_seq)] 
             _all_results_locInfo.extend(chunk_locInfo)
+            print("Elapsed:", self.endtime, "sec")
         all_results_locInfo = self._flatten_dict(_all_results_locInfo)
-        # 
+        
+        #
         result_dict = {}
         for asm in self.query_asm:                      # 어셈블리별로 별도 풀
             print(f"[{asm}]")
@@ -181,27 +192,38 @@ class ASOdesign:
             h_tmp = {self.transInfo['chrom']: [self.transInfo]}
             flagL = [ e[3] for e in getRegionType(h_tmp, loc_tmp)]
             flag = []
+            
             for a in flagL:
                 #print(a[0][0])
                 if (('cds' in a[0][0]) or ('utr' in a[0][0])): #exon flag ['cds','utr']
                     flag.append('e') 
                 elif 'int' in a[0][0] : #intron
                     flag.append('i')
-
+            
             #regionT = '/'.join(map(str, loc.regionType())) #test
             regionT = '/'.join(map(str, getRegionType(h_tmp, loc))) #test
-            flag = ':'.join(flag)
+            
+            
+            
             homo, mono = RNAcofold2(sequence)
+            
+            flag = ':'.join(flag)
+            self.t0 = time.time()
+            snp_data = containCommonSNP(loc, self.cSNP)
+            self.endtime = self.endtime+ (time.time() - self.t0)
             #'type','gene','transcriptID','locus','sequence','length','regionType','commonSNP','Gquad','CpG','GC_content','Homo_dimer','Monomer'
-            return {"Type": flag,
+            a = {"Type": flag,
                     "Gene": self.transInfo['transName'],
                     "TranscriptID": self.transInfo['transID'],
                     "Locus": locStr, "Sequence": sequence, "Length": len(sequence), "RegionType": regionT,#test
-                    "CommonSNP": containCommonSNP(loc, self.cSNP),
+                    "CommonSNP": snp_data,
                     "Gquad": containGquad2(sequence),
                     "CpG": countCpG(sequence),
                     "GC_Content": GCcontent(sequence),
-                    "Homo_Dimer": homo, "Monomer": mono}
+                    "Homo_Dimer": homo, "Monomer": mono
+                    }
+            
+            return a
         except Exception as e:
             print(traceback.format_exc())
             return e.args

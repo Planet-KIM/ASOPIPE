@@ -5,7 +5,9 @@ from functools import lru_cache
 
 import RNA
 from diskcache import Cache
-from jklib.bioDB import CommonSNP
+#from jklib.bioDB import CommonSNP
+
+from cyvcf2 import VCF  
 
 # ① 디스크 캐시: 10 GB 또는 항목 1 M개 선에서 LRU 자동 제거
 CACHE_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "./../../" ,".rnacofold_cache")
@@ -16,8 +18,12 @@ RNA.cvar.noLonelyPairs = 1
 def containCommonSNP(loc, cSNP=None):
     try:
         if cSNP == None:
-            cSNP = CommonSNP()
-        return len(cSNP.query(loc))>0
+            #cSNP = CommonSNP()
+            dbsnp_path ="/Users/dowonkim/Dropbox/data/VCF/dbsnp.bcf"
+            cSNP = VCF(dbsnp_path)          # .csi 인덱스 자동 사용
+        locStr = loc.toString().rstrip('-').rstrip('+').replace("chr", "")
+        resultL = [(v.CHROM, v.POS ,v.REF, v.ALT[0], v.INFO)  for v in cSNP(locStr)]
+        return len(resultL)>0
     except:
         print(loc.toString())
         raise('Error')
