@@ -1,6 +1,7 @@
 
 import os
 import re
+import traceback
 from functools import lru_cache
 
 import RNA
@@ -15,14 +16,30 @@ disk_cache = Cache(directory=str(CACHE_DIR), size_limit=10 * 1024 ** 3)
 RNA.cvar.dangles = 2
 RNA.cvar.noLonelyPairs = 1
 
+def loadSNP(locStr, dbsnp_path=None):
+    try:
+        check_type_dbsnp = str(type(dbsnp_path)).lower()
+        cSNP = dbsnp_path
+        if "none" in check_type_dbsnp:
+            dbsnp_path = "/Users/dowonkim/Dropbox/data/VCF/dbsnp.bcf" 
+            cSNP = VCF(dbsnp_path)          # .csi 인덱스 자동 사용
+        elif 'vcf' in check_type_dbsnp:
+            pass
+        else:
+            raise ValueError(f"Check your dpsnp_path argument.(Now: {dbsnp_path})")
+        # “This format (chrom:chrSta-chrEnd) used to be accepted by dbSNP.
+        locStr = locStr.rstrip('-').rstrip('+').replace("chr", "")
+        resultL = [(v.CHROM, v.POS ,v.REF, v.ALT[0], v.INFO)  for v in cSNP(locStr)] 
+        return resultL
+    except Exception as e:
+        print(traceback.format_exc())
+        return e.args # [] error default value is empty list. 
+    
+
 def containCommonSNP(loc, cSNP=None):
     try:
-        if cSNP == None:
-            #cSNP = CommonSNP()
-            dbsnp_path ="/Users/dowonkim/Dropbox/data/VCF/dbsnp.bcf"
-            cSNP = VCF(dbsnp_path)          # .csi 인덱스 자동 사용
-        locStr = loc.toString().rstrip('-').rstrip('+').replace("chr", "")
-        resultL = [(v.CHROM, v.POS ,v.REF, v.ALT[0], v.INFO)  for v in cSNP(locStr)]
+        locStr = loc.toString()
+        resultL = loadSNP(locStr, cSNP)
         return len(resultL)>0
     except:
         print(loc.toString())

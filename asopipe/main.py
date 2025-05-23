@@ -20,7 +20,7 @@ from asopipe.utils.align.maf_th import MultipleAlignmentReader
 from asopipe.utils.rna import RNAcofold2, containCommonSNP, containGquad2, countCpG, GCcontent
 
 from jklib.genome import locus, getRegionType
-from jklib.bioDB import CommonSNP
+#from jklib.bioDB import CommonSNP
 
 
 # ──────────────────────────────────────────────────────────────
