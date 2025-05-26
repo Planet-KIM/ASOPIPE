@@ -18,7 +18,7 @@ from asopipe.utils.coverage import average_edit_distance
 from asopipe.utils.align.maf_th import check_wobble
 from asopipe.utils.align.maf_th import MultipleAlignmentReader
 from asopipe.utils.rna import RNAcofold2, containCommonSNP, containGquad2, countCpG, GCcontent
-
+from asopipe.pipeline.gapmer import gapmer
 from jklib.genome import locus, getRegionType
 #from jklib.bioDB import CommonSNP
 
@@ -113,7 +113,7 @@ class ASOdesign:
             yield seq[i:i+k]
 
     # ───── 퍼블릭 메서드 ─────────────────────────────────────
-    def process_main(self, chunk_division=3, max_workers=3, wobble=2, to_df=True):
+    def process_main(self, chunk_division=3, max_workers=3, wobble=2, to_df=True, gapmer_filtered=False):
         print(f"#tiles={len(self.txn_tiles)}, assemblies={self.query_asm}")     
         #
         _all_results_locInfo = []
@@ -165,6 +165,8 @@ class ASOdesign:
             #sort_result_dict[_assembly]["wobble"] = wobble_pair
             #sort_result_dict[_assembly].update(all_results_locInfo)
         #print(all_results_locInfo)
+        if gapmer_filtered:
+            all_results_locInfo = gapmer(result=all_results_locInfo, middle_size=10, gapmer_coord='', target_assembly=self.query_asm)
         if to_df:
             #result_df  = self.apply_df(sort_result_dict)
             result_df = pd.DataFrame(all_results_locInfo)
