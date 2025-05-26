@@ -120,7 +120,7 @@ class ASOdesign:
         for chunk_loc, chunk_seq in zip(self._chunks(self.txn_tiles, chunk_division), self._chunks(self.txn_tile_seq, chunk_division)):
             chunk_locInfo = [self.getlocInfo(tile_loc, tile_seq) for tile_loc, tile_seq in zip(chunk_loc, chunk_seq)] 
             _all_results_locInfo.extend(chunk_locInfo)
-            print("Elapsed:", self.endtime, "sec")
+            #print("Elapsed:", self.endtime, "sec")
         all_results_locInfo = self._flatten_dict(_all_results_locInfo)
         
         #
@@ -204,15 +204,12 @@ class ASOdesign:
             
             #regionT = '/'.join(map(str, loc.regionType())) #test
             regionT = '/'.join(map(str, getRegionType(h_tmp, loc))) #test
-            
-            
-            
             homo, mono = RNAcofold2(sequence)
             
             flag = ':'.join(flag)
-            self.t0 = time.time()
+            #self.t0 = time.time()
             snp_data = containCommonSNP(loc, self.cSNP)
-            self.endtime = self.endtime+ (time.time() - self.t0)
+            #self.endtime = self.endtime+ (time.time() - self.t0)
             #'type','gene','transcriptID','locus','sequence','length','regionType','commonSNP','Gquad','CpG','GC_content','Homo_dimer','Monomer'
             a = {"Type": flag,
                     "Gene": self.transInfo['transName'],
