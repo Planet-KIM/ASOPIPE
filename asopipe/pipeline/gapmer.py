@@ -94,11 +94,12 @@ def flaten_list(t):
     return [e for st in t for e in st]
 
 def gapmer(result, middle_size=10, gapmer_coord='',target_assembly=["mm39"]):
+    print(f"#gapmer filter start: target_assembly: {target_assembly}")
     wingcoordL = _getWingCoord(result=result, middle_size=middle_size, gapmer_coord=gapmer_coord)
 
     # test conservation
     for assembly in target_assembly:
-        print(f"assembly: {assembly}")
+        #print(f"assembly: {assembly}")
         gapmer_filtered = []
         for _coverage, _wobble, coords in zip(result[f"coverage_{assembly}"], result[f"wobble_{assembly}"], wingcoordL):
             # test gap CpG
