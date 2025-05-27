@@ -9,3 +9,5 @@ diskcache
 viennarna
 numba
 cyvcf2
+pyarrow<16
+polars>=0.20,<0.21

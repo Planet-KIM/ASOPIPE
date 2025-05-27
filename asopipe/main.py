@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-#import multiprocessing as mp
+import multiprocessing as mp
+
 import concurrent.futures
 import numpy as np
 import pandas as pd
 from collections import defaultdict
 
+import os
 import time
 import traceback
 #import editdistance
@@ -15,6 +17,7 @@ from cyvcf2 import VCF   # pip install cyvcf2
 
 from asopipe.utils.basic import loadBlatOutput
 from asopipe.utils.coverage import average_edit_distance
+from asopipe.utils.csv import save_csv_std, save_csv_pyarrow, save_csv_polars
 from asopipe.utils.align.maf_th import check_wobble
 from asopipe.utils.align.maf_th import MultipleAlignmentReader
 from asopipe.utils.rna import RNAcofold2, containCommonSNP, containGquad2, countCpG, GCcontent
@@ -113,8 +116,8 @@ class ASOdesign:
             yield seq[i:i+k]
 
     # ───── 퍼블릭 메서드 ─────────────────────────────────────
-    def process_main(self, chunk_division=3, max_workers=3, wobble=2, to_df=True, gapmer_filtered=False):
-        print(f"#tiles={len(self.txn_tiles)}, assemblies={self.query_asm}")     
+    def process_main(self, chunk_division=3, max_workers=3, wobble=2, to_df=True, gapmer_filtered=False, to_csv=False, output_path=None):
+        print(f"#tiles={len(self.txn_tiles)}, assemblies={self.query_asm}, tile_length={self.tile_length}, wobble={wobble}")     
         #
         _all_results_locInfo = []
         for chunk_loc, chunk_seq in zip(self._chunks(self.txn_tiles, chunk_division), self._chunks(self.txn_tile_seq, chunk_division)):
@@ -122,7 +125,7 @@ class ASOdesign:
             _all_results_locInfo.extend(chunk_locInfo)
             #print("Elapsed:", self.endtime, "sec")
         all_results_locInfo = self._flatten_dict(_all_results_locInfo)
-        
+
         #
         result_dict = {}
         for asm in self.query_asm:                      # 어셈블리별로 별도 풀
@@ -146,8 +149,8 @@ class ASOdesign:
                 #result_dict[asm] = {"maf_seq": all_results_maf, "coverage": all_editdist, "locInfo": all_results_locInfo}
                 #print(asm, result_dict[asm]["maf_seq"][:3])
         #print("finished. first 3 results:", result_dict[self.query_asm[0]]["locInfo"][:1])
-        print("finished. first 3 results:", result_dict[self.query_asm[0]]["maf_seq"][:1])
-        print("finished. first 3 results:", result_dict[self.query_asm[0]]["coverage"][:1])
+        #print("finished. first 3 results:", result_dict[self.query_asm[0]]["maf_seq"][:1])
+        #print("finished. first 3 results:", result_dict[self.query_asm[0]]["coverage"][:1])
         sort_result_dict = self._sort_dict(result_dict)
         #(zip(result["mm39"]["hg38"], result["mm39"]["mm39"],  
         #print(sort_result_dict)
@@ -165,8 +168,19 @@ class ASOdesign:
             #sort_result_dict[_assembly]["wobble"] = wobble_pair
             #sort_result_dict[_assembly].update(all_results_locInfo)
         #print(all_results_locInfo)
+        all_results_locInfo_copy = all_results_locInfo.copy()
+        if output_path == None and to_csv:
+            output_path = os.path.dirname(os.path.realpath(__file__))
+        if to_csv:
+            save_csv_pyarrow(data_dict=all_results_locInfo_copy,
+                             path=os.path.join(output_path,f"{self.transid}_{self.tile_length}mer_wobble_{wobble}.csv"),
+                             toString=True)
         if gapmer_filtered:
-            all_results_locInfo = gapmer(result=all_results_locInfo, middle_size=10, gapmer_coord='', target_assembly=self.query_asm)
+            all_results_locInfo= gapmer(result=all_results_locInfo, middle_size=10, gapmer_coord='', target_assembly=self.query_asm)
+            if to_csv:
+                save_csv_pyarrow(data_dict=all_results_locInfo,
+                                 path=os.path.join(output_path,f"{self.transid}_{self.tile_length}mer_wobble_{wobble}_gapmer_filtered.csv"),
+                                 toString=True)
         if to_df:
             #result_df  = self.apply_df(sort_result_dict)
             result_df = pd.DataFrame(all_results_locInfo)
@@ -299,20 +313,44 @@ class ASOdesign:
         except Exception as e:
             print(e.args)
             return e.args
-        
-    
-"""
-# ──────────────────────────────────────────────────────────────
-# 3) 실행 예시  ────────────────────────────────────────────────
-if __name__ == "__main__":
-    mp.set_start_method("spawn", force=True)   # macOS/Linux 안전
 
-    t0   = time.time()
-    aso  = ASOdesign(transid="NM_002415",
-                     query_assembly=["mm39", "mm10"],
-                     ref_assembly="hg38",
-                     tile_length=17)
-
-    aso.process_main(chunk_division=5, max_workers=4)
-    print("Elapsed:", time.time() - t0, "sec")
-"""
+def run_ASOdesign(transid="NM_002415",
+                  refFlat_path="/Users/dowonkim/Dropbox/data/UCSC/hg38/refFlat/refFlat_200817.txt",
+                  maf_dir='/Users/dowonkim/Dropbox/data/offtarget_test/maf',
+                  dbsnp_path ="/Users/dowonkim/Dropbox/data/VCF/dbsnp.bcf",
+                  query_assembly=["mm39"],      # tuple/리스트 허용
+                  ref_assembly="hg38",
+                  k_min=17, k_max=17,
+                  chunk_division=5, max_workers=1, wobble=0, to_df=False, gapmer_filtered=True, to_csv=True,
+                  output_path=None):
+    """
+    Run the ASOdesign process with default parameters.
+    """
+    try:
+        if k_min > k_max:
+            raise ValueError("k_min should be less than or equal to k_max")
+        if k_min < 17 or k_max < 17:
+            raise ValueError("k_min and k_max should be greater than or equal to 17")
+        if k_max > 25:
+            raise ValueError("k_max should be less than or equal to 25")
+        t0   = time.time()
+        mp.set_start_method("spawn", force=True)   # macOS/Linux 안전
+        for tile_length in range(k_min, k_max+1):
+            aso = ASOdesign(transid=transid,
+                            refFlat_path=refFlat_path,
+                            maf_dir=maf_dir,
+                            dbsnp_path =dbsnp_path,
+                            query_assembly=query_assembly,      # tuple/리스트 허용
+                            ref_assembly=ref_assembly,
+                            tile_length=tile_length)
+            
+            result_df = aso.process_main(chunk_division=chunk_division, max_workers=max_workers, wobble=wobble,
+                                        to_df=to_df,
+                                        gapmer_filtered=gapmer_filtered, 
+                                        to_csv=to_csv,
+                                        output_path=output_path)
+        print("Elapsed:", time.time() - t0, "sec")
+        return result_df
+    except Exception as e:
+        print(e.args)
+        return e.args
