@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# cache
+.rnacofold_cache/
+
 # csv
 *.csv
 
