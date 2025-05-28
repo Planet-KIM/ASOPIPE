@@ -30,6 +30,5 @@ def save_csv_pyarrow(data_dict, path, toString=False):
     )
     
 
-
 def save_csv_polars(data_dict, path):
     pl.DataFrame(data_dict).write_csv(path)  
