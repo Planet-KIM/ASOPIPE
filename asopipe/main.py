@@ -129,7 +129,7 @@ class ASOdesign:
         #
         result_dict = {}
         for asm in self.query_asm:                      # 어셈블리별로 별도 풀
-            print(f"[{asm}]")
+            print(f"Assembly: [{asm}] prcessing...")
             with concurrent.futures.ProcessPoolExecutor(
                     max_workers=max_workers,
                     initializer=_init_worker,
