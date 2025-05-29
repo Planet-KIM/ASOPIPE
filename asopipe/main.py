@@ -352,5 +352,6 @@ def run_ASOdesign(transid="NM_002415",
         print("Elapsed:", time.time() - t0, "sec")
         return result_df
     except Exception as e:
+        print(traceback.format_exc())
         print(e.args)
         return e.args
