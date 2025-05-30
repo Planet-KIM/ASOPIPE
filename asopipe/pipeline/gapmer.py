@@ -132,8 +132,8 @@ def gapmer(result, middle_size=10, gapmer_coord='',target_assembly=["mm39"]):
                     continue    
                 gapmer_filtered.append(True)
             else:
-                # distnace가 있다는 것이기에 false로 처리
-                gapmer_filtered.append(False)
+                # distnace가 있다는 것이기에 true로 처리
+                gapmer_filtered.append(True)
                 continue
         result[f"gapmer_filtered_{assembly}"] = gapmer_filtered
         result[f'gapmer_coords_{assembly}'] = [ ":".join(['_'.join(map(str, wing_coord)) for wing_coord in wingL])] * len(gapmer_filtered)
