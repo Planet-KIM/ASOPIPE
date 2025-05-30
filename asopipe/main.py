@@ -169,6 +169,7 @@ class ASOdesign:
             #sort_result_dict[_assembly].update(all_results_locInfo)
         #print(all_results_locInfo)
         all_results_locInfo_copy = all_results_locInfo.copy()
+        result = {"default": all_results_locInfo_copy} 
         if output_path == None and to_csv:
             output_path = os.path.dirname(os.path.realpath(__file__))
         if to_csv:
@@ -181,12 +182,16 @@ class ASOdesign:
                 save_csv_pyarrow(data_dict=all_results_locInfo,
                                  path=os.path.join(output_path,f"{self.transid}_{self.tile_length}mer_wobble_{wobble}_gapmer_filtered.csv"),
                                  toString=True)
+            result["gapmer"] = all_results_locInfo
         if to_df:
             #result_df  = self.apply_df(sort_result_dict)
-            result_df = pd.DataFrame(all_results_locInfo)
-            return result_df
+            #result_df = pd.DataFrame(all_results_locInfo)
+            result["default"] = pd.DataFrame(all_results_locInfo_copy)
+            if gapmer_filtered:
+                result["gapmer"] = pd.DataFrame(all_results_locInfo)
+            return result
         else:
-            return all_results_locInfo
+            return result
 
     @staticmethod
     def _editdistance_safe(res):
@@ -344,13 +349,13 @@ def run_ASOdesign(transid="NM_002415",
                             ref_assembly=ref_assembly,
                             tile_length=tile_length)
             
-            result_df = aso.process_main(chunk_division=chunk_division, max_workers=max_workers, wobble=wobble,
+            result = aso.process_main(chunk_division=chunk_division, max_workers=max_workers, wobble=wobble,
                                         to_df=to_df,
                                         gapmer_filtered=gapmer_filtered, 
                                         to_csv=to_csv,
                                         output_path=output_path)
         print("Elapsed:", time.time() - t0, "sec")
-        return result_df
+        return result
     except Exception as e:
         print(traceback.format_exc())
         print(e.args)
