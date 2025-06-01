@@ -32,7 +32,7 @@ def loadSNP(locStr, dbsnp_path=None):
             raise ValueError(f"Check your dpsnp_path argument.(Now: {dbsnp_path})")
         # “This format (chrom:chrSta-chrEnd) used to be accepted by dbSNP.
         locStr = locStr.rstrip('-').rstrip('+').replace("chr", "")
-        resultL = [(v.CHROM, v.POS ,v.REF, v.ALT[0], v.INFO)  for v in cSNP(locStr)] 
+        resultL = [(v.CHROM, v.POS ,v.REF, v.ALT[0], [info for info in v.INFO])  for v in cSNP(locStr)] 
         return resultL
     except Exception as e:
         print(traceback.format_exc())
@@ -43,7 +43,8 @@ def containCommonSNP(loc, cSNP=None):
     try:
         locStr = loc.toString()
         resultL = loadSNP(locStr, cSNP)
-        return len(resultL)>0
+        return resultL
+        #return len(resultL)>0
     except:
         print(loc.toString())
         raise('Error')

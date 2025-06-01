@@ -19,7 +19,7 @@ def save_csv_std(data_dict, path):
 def save_csv_pyarrow(data_dict, path, toString=False):
     if toString:
         for _key, _value in data_dict.items():
-            if 'wobble' in _key:
+            if 'wobble' in _key or 'CommonSNP' in _key:
                 data_dict[_key] = [str(_value_item) for _value_item in _value ]
 
     table = pa.Table.from_pydict(data_dict)
