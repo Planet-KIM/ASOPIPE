@@ -5,7 +5,7 @@ __pycache__/
 
 # cache
 .rnacofold_cache/
-
+*cache.*
 # csv
 *.csv
 
