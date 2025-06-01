@@ -59,6 +59,7 @@ class ASOdesign:
                  refFlat_path="/Users/dowonkim/Dropbox/data/UCSC/hg38/refFlat/refFlat_200817.txt",
                  maf_dir='/Users/dowonkim/Dropbox/data/offtarget_test/maf',
                  dbsnp_path ="/Users/dowonkim/Dropbox/data/VCF/dbsnp.bcf",
+                 dbsnp_index_path ="/Users/dowonkim/Dropbox/data/VCF/dbsnp.bcf.csi",  # .csi 인덱스 자동 사용
                  query_assembly=["mm39"],      # tuple/리스트 허용
                  ref_assembly="hg38",
                  tile_length=17):
@@ -66,7 +67,8 @@ class ASOdesign:
         self.refFlat      = loadBlatOutput(refFlat_path, by='transID')
         #self.cSNP = CommonSNP()
         
-        self.cSNP = VCF(dbsnp_path)  # .csi 인덱스 자동 사용
+        self.cSNP = VCF(dbsnp_path)
+        self.cSNP.set_index(index_path=dbsnp_index_path)  # .csi 인덱스 자동 사용
         self.maf_dir      = maf_dir
         self.query_asm    = query_assembly
         self.ref_asm      = ref_assembly

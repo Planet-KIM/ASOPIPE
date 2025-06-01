@@ -21,8 +21,11 @@ def loadSNP(locStr, dbsnp_path=None):
         check_type_dbsnp = str(type(dbsnp_path)).lower()
         cSNP = dbsnp_path
         if "none" in check_type_dbsnp:
-            dbsnp_path = "/Users/dowonkim/Dropbox/data/VCF/dbsnp.bcf" 
-            cSNP = VCF(dbsnp_path)          # .csi 인덱스 자동 사용
+            dbsnp_path = "/Users/dowonkim/Dropbox/data/VCF/dbsnp.bcf"
+            dbsnp_index_path = "/Users/dowonkim/Dropbox/data/VCF/dbsnp.bcf.csi"  
+            cSNP = VCF(dbsnp_path)
+            cSNP.set_index(index_path=dbsnp_index_path)
+            #cSNP = VCF(dbsnp_path)          # .csi 인덱스 자동 사용
         elif 'vcf' in check_type_dbsnp:
             pass
         else:
