@@ -343,6 +343,7 @@ def run_ASOdesign(transid="NM_002415",
             raise ValueError("k_max should be less than or equal to 25")
         t0   = time.time()
         mp.set_start_method("spawn", force=True)   # macOS/Linux 안전
+        result_list = []
         for tile_length in range(k_min, k_max+1):
             aso = ASOdesign(transid=transid,
                             refFlat_path=refFlat_path,
@@ -358,8 +359,9 @@ def run_ASOdesign(transid="NM_002415",
                                         gapmer_filtered=gapmer_filtered, 
                                         to_csv=to_csv,
                                         output_path=output_path)
+            result_list.append({"tile_length": tile_length, "result": result})
         print("Elapsed:", time.time() - t0, "sec")
-        return result
+        return result_list
     except Exception as e:
         print(traceback.format_exc())
         print(e.args)
