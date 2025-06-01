@@ -325,6 +325,7 @@ def run_ASOdesign(transid="NM_002415",
                   refFlat_path="/Users/dowonkim/Dropbox/data/UCSC/hg38/refFlat/refFlat_200817.txt",
                   maf_dir='/Users/dowonkim/Dropbox/data/offtarget_test/maf',
                   dbsnp_path ="/Users/dowonkim/Dropbox/data/VCF/dbsnp.bcf",
+                  dbsnp_index_path ="/Users/dowonkim/Dropbox/data/VCF/dbsnp.bcf.csi",  # .csi 인덱스 자동 사용
                   query_assembly=["mm39"],      # tuple/리스트 허용
                   ref_assembly="hg38",
                   k_min=17, k_max=17,
@@ -347,6 +348,7 @@ def run_ASOdesign(transid="NM_002415",
                             refFlat_path=refFlat_path,
                             maf_dir=maf_dir,
                             dbsnp_path =dbsnp_path,
+                            dbsnp_index_path=dbsnp_index_path,  # .csi 인덱스 자동 사용
                             query_assembly=query_assembly,      # tuple/리스트 허용
                             ref_assembly=ref_assembly,
                             tile_length=tile_length)
