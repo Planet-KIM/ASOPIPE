@@ -48,7 +48,7 @@ def filter_gapmer(result, species_prefix="gapmer_filtered",
 def _getWingCoord(result, middle_size=10, gapmer_coord=''):
     try:
         coordL = [] 
-        for sequence, length in zip(result["Sequence"], result["Length"]):
+        for sequence, length in zip(result["ASO_Sequence"], result["Length"]):
             if length < middle_size:
                 raise ValueError(f"Sequence Length is {length}")
             wing_coord = None
@@ -85,7 +85,7 @@ def _getWingCoord(result, middle_size=10, gapmer_coord=''):
                     
     except Exception as e:
         print(traceback.format_exc())
-        return e.argsss
+        return e.args
         
 
 

@@ -233,7 +233,7 @@ class ASOdesign:
             a = {"Type": flag,
                     "Gene": self.transInfo['transName'],
                     "TranscriptID": self.transInfo['transID'],
-                    "Locus": locStr, "Sequence": sequence, "Length": len(sequence), "RegionType": regionT,#test
+                    "ASO_Locus": locStr, "ASO_Sequence": sequence, "Length": len(sequence), "RegionType": regionT,#test
                     "CommonSNP": snp_data,
                     "Gquad": containGquad2(sequence),
                     "CpG": countCpG(sequence),
