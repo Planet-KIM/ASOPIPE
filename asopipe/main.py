@@ -82,6 +82,7 @@ class ASOdesign:
         
         self.transInfo    = self._get_transInfo()
         if transid != None:
+            self.transName = self.transInfo['transName']
             self.strand = self.transInfo['strand']
             self.anti = '+' if self.transInfo['strand'] == '-' else '-'
             self.chrom = self.transInfo['chrom']
@@ -176,13 +177,13 @@ class ASOdesign:
             output_path = os.path.dirname(os.path.realpath(__file__))
         if to_csv:
             save_csv_pyarrow(data_dict=all_results_locInfo_copy,
-                             path=os.path.join(output_path,f"{self.transid}_{self.tile_length}mer_wobble_{wobble}.csv"),
+                             path=os.path.join(output_path,f"{self.transName}_{self.transid}_{self.tile_length}mer_wobble_{wobble}.csv"),
                              toString=True)
         if gapmer_filtered:
             all_results_locInfo= gapmer(result=all_results_locInfo, middle_size=10, gapmer_coord='', target_assembly=self.query_asm)
             if to_csv:
                 save_csv_pyarrow(data_dict=all_results_locInfo,
-                                 path=os.path.join(output_path,f"{self.transid}_{self.tile_length}mer_wobble_{wobble}_gapmer_filtered.csv"),
+                                 path=os.path.join(output_path,f"{self.transName}_{self.transid}_{self.tile_length}mer_wobble_{wobble}_gapmer_filtered.csv"),
                                  toString=True)
             result["gapmer"] = all_results_locInfo
         if to_df:

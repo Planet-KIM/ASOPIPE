@@ -19,5 +19,5 @@ if __name__ == "__main__":
                      dbsnp_index_path ="/home/jkportal/data/VCF/dbsnp.bcf.csi",
                      ref_assembly="hg38",
                      k_min=19, k_max=20,
-                     chunk_division=5, max_workers=1, wobble=0, to_df=False, gapmer_filtered=True,
+                     chunk_division=3, max_workers=12, wobble=0, to_df=False, gapmer_filtered=True,
                      to_csv=True, output_path=f"./{transid}")
