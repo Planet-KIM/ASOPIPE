@@ -7,7 +7,7 @@ seaborn
 bx-python
 editdistance
 diskcache
-viennarna
+#viennarna
 numba
 cyvcf2
 pyarrow<16
